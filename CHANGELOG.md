@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/sentdm/sent-dm-voice-kotlin/compare/v0.2.0...v0.2.1) (2026-10-31)
+
+
+### Documentation
+
+* this SDK places calls; receiving is the web client's ([ae5b896](https://github.com/sentdm/sent-dm-voice-kotlin/commit/ae5b8965254fa9b8e0c3faf78f63e1c68a3b2aa4))
+
 ## [0.2.0](https://github.com/sentdm/sent-dm-voice-kotlin/compare/v0.1.1...v0.2.0) (2026-10-31)
 
 
