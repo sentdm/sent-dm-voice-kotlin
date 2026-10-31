@@ -12,8 +12,8 @@ allprojects {
     version = (property("version") as String).substringBefore('#').trim()
 }
 
-// Publishing to Maven Central, the way sent-dm-java does it: the Central Portal, every publication signed
-// with the key the workflow imports from the repository's secrets.
+// Publishing to Maven Central: the Central Portal, every publication signed with the key the workflow
+// hands the plugin as Gradle properties (ORG_GRADLE_PROJECT_signingInMemoryKey and ...KeyPassword).
 subprojects {
     plugins.withId("com.vanniktech.maven.publish") {
         configure<PublishingExtension> {
@@ -26,9 +26,6 @@ subprojects {
                 }
             }
         }
-        extra["signingInMemoryKey"] = System.getenv("GPG_SIGNING_KEY")
-        extra["signingInMemoryKeyId"] = System.getenv("GPG_SIGNING_KEY_ID")
-        extra["signingInMemoryKeyPassword"] = System.getenv("GPG_SIGNING_PASSWORD")
         configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
             if (!project.hasProperty("publishLocal")) {
                 signAllPublications()
