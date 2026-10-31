@@ -11,12 +11,20 @@ import com.sinch.android.rtc.calling.CallDetails
 import com.sinch.android.rtc.calling.CallEndCause
 import com.sinch.android.rtc.calling.CallListener
 import com.sinch.android.rtc.calling.MediaConstraints
+import com.sinch.android.rtc.callquality.warnings.CallQualityWarningEvent
+import com.sinch.android.rtc.callquality.warnings.CallQualityWarningEventListener
+import com.sinch.android.rtc.callquality.warnings.CallQualityWarningEventType
+import com.sinch.android.rtc.callquality.warnings.HighInboundJitterWarningEvent
+import com.sinch.android.rtc.callquality.warnings.HighInboundPacketLossWarningEvent
+import com.sinch.android.rtc.callquality.warnings.HighRemoteInboundRttWarningEvent
+import com.sinch.android.rtc.callquality.warnings.MissingMediaStreamWarningEvent
 import dm.sent.voice.core.AdapterCallEvent
 import dm.sent.voice.core.CallState
 import dm.sent.voice.core.CallStats
 import dm.sent.voice.core.CallTarget
 import dm.sent.voice.core.ErrorCode
 import dm.sent.voice.core.ProviderAdapter
+import dm.sent.voice.core.QualityWarning
 import dm.sent.voice.core.SentVoiceException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -128,6 +136,11 @@ internal class SinchAdapter(private val context: Context) : ProviderAdapter {
                 throw SentVoiceException(ErrorCode.CALL_FAILED, "The call could not be placed.", providerDetail = error.toString(), cause = error)
             }
             call.addCallListener(listener)
+            call.qualityController.addCallQualityWarningEventListener(object : CallQualityWarningEventListener {
+                override fun onCallQualityWarningEvent(event: CallQualityWarningEvent) {
+                    quality(event)?.let { emit(call.callId, it) }
+                }
+            })
             synchronized(lock) { calls[call.callId] = call }
             call.callId
         }
@@ -149,6 +162,7 @@ internal class SinchAdapter(private val context: Context) : ProviderAdapter {
         call.sendDTMF(digits)
     }
 
+    /** The provider's Android SDK reports quality as warning events, not numbers; see [quality]. */
     override suspend fun stats(callId: String): CallStats = CallStats()
 
     override fun setCallEventHandler(handler: (callId: String, event: AdapterCallEvent) -> Unit) {
@@ -186,6 +200,18 @@ internal class SinchAdapter(private val context: Context) : ProviderAdapter {
             throw SentVoiceException(ErrorCode.TOKEN_INVALID, "The credential names no application and user.")
         }
         return iss.removePrefix(APPLICATION_PREFIX) to sub.substring(usersAt + "/users/".length)
+    }
+
+    /** What the provider's quality warning means in the contract's words, or null for the ones the contract does not carry. */
+    internal fun quality(event: CallQualityWarningEvent): AdapterCallEvent? {
+        val cleared = event.type == CallQualityWarningEventType.Recover
+        return when (event) {
+            is MissingMediaStreamWarningEvent -> if (cleared) AdapterCallEvent.Reconnected else AdapterCallEvent.Reconnecting
+            is HighInboundJitterWarningEvent -> AdapterCallEvent.Quality(QualityWarning("jitter", cleared))
+            is HighInboundPacketLossWarningEvent -> AdapterCallEvent.Quality(QualityWarning("packetLoss", cleared))
+            is HighRemoteInboundRttWarningEvent -> AdapterCallEvent.Quality(QualityWarning("rtt", cleared))
+            else -> null
+        }
     }
 
     /** What the provider's end cause means in the contract's words. */
