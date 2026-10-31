@@ -39,8 +39,11 @@ public sealed class AdapterCallEvent {
 
 /** The provider's SDK behind the client. The core drives it and never sees the provider's types. */
 public interface ProviderAdapter {
-    /** Registers with the credential Sent issued, or re-registers with a fresh one. */
-    public suspend fun register(credential: String)
+    /**
+     * Registers with the credential Sent issued, or re-registers with a fresh one. [number] is the Sent number
+     * the user is bound to, which the provider shows as the caller id on calls to phones.
+     */
+    public suspend fun register(credential: String, number: String?)
     public suspend fun unregister()
     /** Places a call and returns the provider's id for it. */
     public suspend fun call(target: CallTarget): String

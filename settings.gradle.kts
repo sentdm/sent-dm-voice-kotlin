@@ -1,6 +1,7 @@
 pluginManagement {
     repositories {
         gradlePluginPortal()
+        google()
         mavenCentral()
     }
 }
@@ -12,6 +13,7 @@ plugins {
 
 dependencyResolutionManagement {
     repositories {
+        google()
         mavenCentral()
     }
 }
@@ -19,3 +21,4 @@ dependencyResolutionManagement {
 rootProject.name = "sent-voice-kotlin"
 
 include("voice-client-core")
+include("voice-client")

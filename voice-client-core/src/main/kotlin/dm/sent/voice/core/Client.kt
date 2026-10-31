@@ -114,7 +114,7 @@ public class SentVoiceClient(
             attempt += 1
             try {
                 val fresh = TokenExchange.fetch(options.tokenProvider, options.baseUrl, http)
-                adapter.register(fresh.credential)
+                adapter.register(fresh.credential, fresh.number)
                 synchronized(lock) { token = fresh }
                 telemetry.useToken(fresh.token)
                 telemetry.record(TelemetryEventName.REGISTER_COMPLETED, payload = mapOf("attempt" to TelemetryValue.Count(attempt.toLong())), atMs = now())
@@ -264,7 +264,7 @@ public class SentVoiceClient(
             attempt += 1
             try {
                 val fresh = TokenExchange.fetch(options.tokenProvider, options.baseUrl, http)
-                adapter.register(fresh.credential)
+                adapter.register(fresh.credential, fresh.number)
                 synchronized(lock) { token = fresh }
                 telemetry.useToken(fresh.token)
                 if (synchronized(lock) { clientState } == ClientState.OFFLINE) setState(ClientState.REGISTERED, ClientEvent.Registered)

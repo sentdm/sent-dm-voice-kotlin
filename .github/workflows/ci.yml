@@ -21,4 +21,5 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
       - name: Build and test
-        run: ./gradlew check --no-daemon
+        # The core's tests, and the Android library assembled against the provider's SDK.
+        run: ./gradlew :voice-client-core:check :voice-client:assembleRelease --no-daemon
