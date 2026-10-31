@@ -14,9 +14,12 @@ internal class FakeAdapter : ProviderAdapter {
     private var handler: ((String, AdapterCallEvent) -> Unit)? = null
     private var nextCallNumber = 0
 
-    override suspend fun register(credential: String) {
+    val numbers = mutableListOf<String?>()
+
+    override suspend fun register(credential: String, number: String?) {
         registerError?.let { throw it }
         registered.add(credential)
+        numbers.add(number)
     }
 
     override suspend fun unregister() {
