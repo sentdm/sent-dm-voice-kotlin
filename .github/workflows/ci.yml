@@ -23,3 +23,7 @@ jobs:
       - name: Build and test
         # The core's tests, and the Android library assembled against the provider's SDK.
         run: ./gradlew :voice-client-core:check :voice-client:assembleRelease --no-daemon
+      - name: Check the publications build
+        # Everything publishAndReleaseToMavenCentral would upload, built into a local folder: no signing,
+        # no credentials, so a broken POM or a missing sources jar fails here, not on release day.
+        run: ./gradlew publishAllPublicationsToLocalFileSystemRepository -PpublishLocal --no-daemon && find build/local-maven-repo -name '*.pom' | sed 's#build/local-maven-repo/##'
