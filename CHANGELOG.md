@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/sentdm/sent-dm-voice-kotlin/compare/v0.1.1...v0.2.0) (2026-10-31)
+
+
+### Features
+
+* call quality warnings ([5fa03ea](https://github.com/sentdm/sent-dm-voice-kotlin/commit/5fa03ea0abacdc67f2b15f687bec59bd79b80f29))
+
 ## [0.1.1](https://github.com/sentdm/sent-dm-voice-kotlin/compare/v0.1.0...v0.1.1) (2026-10-31)
 
 
