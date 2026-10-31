@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/sentdm/sent-dm-voice-kotlin/compare/v0.1.0...v0.1.1) (2026-10-31)
+
+
+### Documentation
+
+* install and quick start for the first release ([a77b740](https://github.com/sentdm/sent-dm-voice-kotlin/commit/a77b74081064e1ae78a499129773b2e389184712))
+* security policy ([c18bf3f](https://github.com/sentdm/sent-dm-voice-kotlin/commit/c18bf3f63826e106d90d4cec63789c9bb6a46e7c))
+
 ## 0.1.0 (2026-10-31)
 
 
