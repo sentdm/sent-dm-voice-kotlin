@@ -24,13 +24,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
       - name: Publish to Maven Central
-        run: |-
-          export -- GPG_SIGNING_KEY_ID
-          printenv -- GPG_SIGNING_KEY | gpg --batch --passphrase-fd 3 --import 3<<< "$GPG_SIGNING_PASSWORD"
-          GPG_SIGNING_KEY_ID="$(gpg --with-colons --list-keys | awk -F : -- '/^pub:/ { getline; print "0x" substr($10, length($10) - 7) }')"
-          ./gradlew publishAndReleaseToMavenCentral --stacktrace -PmavenCentralUsername="$SONATYPE_USERNAME" -PmavenCentralPassword="$SONATYPE_PASSWORD" --no-configuration-cache --no-daemon
+        # The plugin reads the signing key and the Portal token from Gradle properties; the
+        # ORG_GRADLE_PROJECT_ prefix turns an environment variable into one. The key is the
+        # ASCII-armored secret key; with no subkeys it needs no key id.
+        run: ./gradlew publishAndReleaseToMavenCentral --stacktrace --no-configuration-cache --no-daemon
         env:
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-          GPG_SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.SONATYPE_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.SONATYPE_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_SIGNING_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_SIGNING_PASSWORD }}
