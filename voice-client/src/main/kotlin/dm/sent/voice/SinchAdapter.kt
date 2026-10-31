@@ -3,7 +3,6 @@ package dm.sent.voice
 import android.content.Context
 import android.util.Base64
 import com.sinch.android.rtc.ClientRegistration
-import com.sinch.android.rtc.MediaConstraints
 import com.sinch.android.rtc.SinchClient
 import com.sinch.android.rtc.SinchClientListener
 import com.sinch.android.rtc.SinchError
@@ -11,6 +10,7 @@ import com.sinch.android.rtc.calling.Call
 import com.sinch.android.rtc.calling.CallDetails
 import com.sinch.android.rtc.calling.CallEndCause
 import com.sinch.android.rtc.calling.CallListener
+import com.sinch.android.rtc.calling.MediaConstraints
 import dm.sent.voice.core.AdapterCallEvent
 import dm.sent.voice.core.CallState
 import dm.sent.voice.core.CallStats
@@ -60,21 +60,34 @@ internal class SinchAdapter(private val context: Context) : ProviderAdapter {
                     .environmentHost(ENVIRONMENT_HOST)
                     .userId(userId)
                     .build()
-                built.addSinchClientListener(object : SinchClientListener() {
+                // The listener also carries the push token callbacks; they never fire here, this client registers no push configuration.
+                built.addSinchClientListener(object : SinchClientListener {
                     override fun onCredentialsRequired(clientRegistration: ClientRegistration) {
                         clientRegistration.register(synchronized(lock) { this@SinchAdapter.credential })
                     }
+
+                    override fun onUserRegistered() {}
+
+                    override fun onUserRegistrationFailed(error: SinchError) = refused("The provider refused the credential.", error)
 
                     override fun onClientStarted(client: SinchClient) {
                         if (continuation.isActive) continuation.resume(Unit)
                     }
 
-                    override fun onClientFailed(client: SinchClient, error: SinchError) {
+                    override fun onClientFailed(client: SinchClient, error: SinchError) = refused("The provider refused the registration.", error)
+
+                    override fun onPushTokenRegistered() {}
+
+                    override fun onPushTokenRegistrationFailed(error: SinchError) {}
+
+                    override fun onPushTokenUnregistered() {}
+
+                    override fun onPushTokenUnregistrationFailed(error: SinchError) {}
+
+                    private fun refused(message: String, error: SinchError) {
                         synchronized(lock) { this@SinchAdapter.client = null }
                         if (continuation.isActive) {
-                            continuation.resumeWithException(
-                                SentVoiceException(ErrorCode.TOKEN_INVALID, "The provider refused the registration.", providerDetail = error.toString()),
-                            )
+                            continuation.resumeWithException(SentVoiceException(ErrorCode.TOKEN_INVALID, message, providerDetail = detail(error)))
                         }
                     }
                 })
@@ -103,7 +116,11 @@ internal class SinchAdapter(private val context: Context) : ProviderAdapter {
         return withContext(Dispatchers.Main) {
             val call = try {
                 when (target) {
-                    is CallTarget.Number -> if (cli != null) current.callController.callPhoneNumber(target.number, cli) else current.callController.callPhoneNumber(target.number)
+                    // The provider needs a caller id on every call to a phone number; the token names it when the account has one.
+                    is CallTarget.Number -> current.callController.callPhoneNumber(
+                        target.number,
+                        cli ?: throw SentVoiceException(ErrorCode.CALL_FAILED, "Calls to phone numbers need a number on the token."),
+                    )
                     is CallTarget.User -> current.callController.callUser(target.id, MediaConstraints(false))
                     is CallTarget.Conference -> current.callController.callConference(target.room)
                 }
@@ -181,8 +198,11 @@ internal class SinchAdapter(private val context: Context) : ProviderAdapter {
         )
         CallEndCause.FAILURE -> AdapterCallEvent.Disconnected(
             CallState.FAILED,
-            SentVoiceException(ErrorCode.CALL_FAILED, providerDetail = details.error?.toString()),
+            SentVoiceException(ErrorCode.CALL_FAILED, providerDetail = details.error?.let(::detail)),
         )
         else -> AdapterCallEvent.Disconnected(CallState.COMPLETED)
     }
+
+    /** The provider's error as one line for `providerDetail`. */
+    private fun detail(error: SinchError): String = "${error.errorType} ${error.code}: ${error.message}"
 }
