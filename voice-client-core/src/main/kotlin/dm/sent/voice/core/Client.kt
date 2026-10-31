@@ -2,11 +2,10 @@ package dm.sent.voice.core
 
 import kotlin.math.max
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -62,7 +61,7 @@ public class SentVoiceClient(
     private var nextListener = 0
     private var refreshJob: Job? = null
     private var qualityJob: Job? = null
-    private var registerJob: Deferred<Unit>? = null
+    private var registering: CompletableDeferred<Unit>? = null
 
     init {
         adapter.setCallEventHandler { callId, event -> handle(callId, event) }
@@ -87,19 +86,24 @@ public class SentVoiceClient(
      * while registering waits for the first; once registered it returns at once.
      */
     public suspend fun register() {
-        val (state, running) = synchronized(lock) { clientState to registerJob }
+        val (state, running) = synchronized(lock) { clientState to registering }
         if (state == ClientState.DESTROYED) throw SentVoiceException(ErrorCode.NOT_REGISTERED, "The client was destroyed.")
         if (state == ClientState.REGISTERED) return
         if (running != null) {
             running.await()
             return
         }
-        val job = scope.async { doRegister() }
-        synchronized(lock) { registerJob = job }
+        // Registration runs in the caller's coroutine; later callers wait on this and get its outcome.
+        val done = CompletableDeferred<Unit>()
+        synchronized(lock) { registering = done }
         try {
-            job.await()
+            doRegister()
+            done.complete(Unit)
+        } catch (error: Throwable) {
+            done.completeExceptionally(error)
+            throw error
         } finally {
-            synchronized(lock) { registerJob = null }
+            synchronized(lock) { registering = null }
         }
     }
 
